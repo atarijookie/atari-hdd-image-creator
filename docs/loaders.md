@@ -1,6 +1,6 @@
 # Driver loader analysis
 
-This is the Phase 0 result for `ahic`. It comes from static analysis only: **no image built from these rules has been booted yet.**
+This analysis comes from reading the loader code. `tools/simulate_boot.py` runs those loaders against generated images, but **no image has been booted on TOS yet.**
 
 `tools/extract_loaders.py` carves the loaders out of the original installers and packs them, with the drivers, into `assets/drivers.zip`.
 
@@ -59,7 +59,8 @@ This is the Phase 0 result for `ahic`. It comes from static analysis only: **no 
 | Logical sector size is a multiple of 512 | All three convert it to physical sectors |
 | Root directory exactly fills whole logical sectors | AHDI and CBHD do not round its size up, so data start would be wrong otherwise |
 | End of chain is `0xFFFF` | ICD stops only on `0xFFFF` |
-| Driver is the first root directory entry | ICD stops at the first empty entry, and CBHD searches for `OSLOADER.SYS` first |
+| Driver entry comes before the first unused root directory entry | ICD stops searching at an entry starting with `0` |
+| No `OSLOADER.SYS` next to CBHD | CBHD loads that file first, for MagiC |
 | Fewer than `0x8000` clusters | AHDI and CBHD treat a high bit as end of chain |
 
 The file does not need to be contiguous, because all three follow the FAT.
@@ -81,3 +82,5 @@ The file does not need to be contiguous, because all three follow the FAT.
 - Whether `SHDRIVER.SYS`, loaded by `HINSTALL.PRG`'s boot sector, works for AHDI 6.x. The installer ships with the older AHDI 4.03.
 - GEM partitions under 16 MB with all three drivers.
 - Partition limits on TOS 1.02 with 128 MB data partitions.
+- Each driver's partition handling: for example, whether all three accept `BGM` partitions with 512-byte logical sectors, which `ahic` uses below about 32 MB.
+- FAT16 on partitions under 4085 clusters. AHDI always uses FAT16 for GEMDOS partitions, but CBHD and ICD are unchecked, and other FAT readers may assume FAT12.

@@ -1,0 +1,5 @@
+/ahic
+/ahic.exe
+*.img
+__pycache__/
+/dist/
