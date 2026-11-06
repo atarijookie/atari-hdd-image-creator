@@ -106,12 +106,14 @@ def main():
     files["loaders/icd_boot.bin"] = sector_with(boot, BOOT_RANGE)
 
     # Drivers keep their original bytes and take the name their loader expects.
-    for target, source in {
-        "drivers/SHDRIVER.SYS": third / "ADHI 6061 Sources/AHDI6061.PRG",
-        "drivers/CBHD.SYS": cbhd / "CBHD.PRG",
-        "drivers/ICDBOOT.SYS": icd / "ICDBOOT.PRG",
+    # AHDI6061.PRG is not used: it was built for the 68030 and crashes on a 68000.
+    with zipfile.ZipFile(third / "ADHI 6061 Sources/AHD6060S.ZIP") as sources:
+        ahdi = sources.read("AHDI606/DRIVER.PRG")
+    for target, data in {
+        "drivers/SHDRIVER.SYS": ahdi,
+        "drivers/CBHD.SYS": (cbhd / "CBHD.PRG").read_bytes(),
+        "drivers/ICDBOOT.SYS": (icd / "ICDBOOT.PRG").read_bytes(),
     }.items():
-        data = source.read_bytes()
         check_prg(data, target)
         files[target] = data
 

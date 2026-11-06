@@ -4,14 +4,16 @@
 
 It partitions an image for a chosen TOS version and installs a free driver using that driver's original boot loaders.
 
-**Status:** images pass the loader simulation below, but none has been booted in Hatari or on real hardware yet. See [the test plan](docs/testing.md).
+**Status:** AHDI, CBHD and ICD PRO images boot on TOS 1.02, 1.04 and 2.06 over ACSI, from 4 MB to 1 GB. On the TT, AHDI and CBHD boot from SCSI, while ICD freezes and all three crash on ACSI. See [the test plan](docs/testing.md).
 
 ## Build
 
 ```sh
-go build ./cmd/ahic         # for this computer
+make                        # for this computer
 tools/build_release.sh      # for Linux, Windows and macOS, into dist/
 ```
+
+Without `make`, use `go build ./cmd/ahic`.
 
 Windows and macOS builds compile, but have only been run on Linux so far.
 
@@ -50,7 +52,10 @@ Images use a 15 MB boot partition, then up to 3 equal data partitions. Images un
 ## Development
 
 ```sh
-go test ./...
+make test
+make run                    # start the wizard
+make run ARGS="info disk.img"
+make clean
 python3 tools/simulate_boot.py disk.img SHDRIVER.SYS acsi 1.04
 ```
 
@@ -64,7 +69,7 @@ python3 tools/simulate_boot.py disk.img SHDRIVER.SYS acsi 1.04
 
 | Driver | Version | Status |
 |---|---|---|
-| AHDI | 6.061 | Atari copyright, licence status unclear |
+| AHDI | 6.05c | Atari copyright, licence status unclear |
 | CBHD | 4.57 | Freeware, unchanged copies allowed |
 | ICD PRO | 6.5.5 | ICD copyright, licence status unclear |
 

@@ -1,6 +1,6 @@
 # Driver loader analysis
 
-This analysis comes from reading the loader code. `tools/simulate_boot.py` runs those loaders against generated images, but **no image has been booted on TOS yet.**
+This analysis comes from reading the loader code. `tools/simulate_boot.py` runs those loaders against generated images, and `docs/testing.md` records real boot results.
 
 `tools/extract_loaders.py` carves the loaders out of the original installers and packs them, with the drivers, into `assets/drivers.zip`.
 
@@ -17,14 +17,16 @@ This analysis comes from reading the loader code. `tools/simulate_boot.py` runs 
 | | AHDI | CBHD | ICD PRO |
 |---|---|---|---|
 | Driver file | `SHDRIVER.SYS` | `CBHD.SYS` | `ICDBOOT.SYS` |
-| Driver source | `AHDI6061.PRG` | `CBHD.PRG` 4.57 | `ICDBOOT.PRG` 6.5.5 |
+| Driver source | `DRIVER.PRG` from `AHD6060S.ZIP` | `CBHD.PRG` 4.57 | `ICDBOOT.PRG` 6.5.5 |
 | Loaders from | `HINSTALL.PRG` | `CBHDCONF.APP` | `INSTALL.PRG`, after unpacking PFX |
 | Root code | One, 408 bytes | One, 342 bytes | **ACSI 318 or SCSI 146 bytes** |
 | Boot code | 396 bytes | 501 bytes | 464 bytes |
 | Driver entry | Load address + `0x20` | Load address + `0x20` | Load address, with `d0 = 'WBLB'` |
 | Read routine passed in | `a3` | `a3` | `a5` |
 
-`AHDI6061.PRG` identifies itself as `v6.00`, dated July 31 1992, despite its file name.
+`DRIVER.PRG` is AHDI 6.05c, going by its source history, though its banner says `v6.00`.
+
+**`AHDI6061.PRG` must not be used on a 68000.** It was assembled for the 68030 and has 43 PC-relative `tst` instructions, which a 68000 treats as illegal. It crashed with bombs on every ST test. Before bundling a new driver build, disassemble it with `-m m68k:68000` to check for this. `simulate_boot.py` can't catch it, because its emulator accepts 68030 instructions in 68000 code.
 
 ## Offsets
 
@@ -71,16 +73,12 @@ The file does not need to be contiguous, because all three follow the FAT.
 - **ICD** needs a root chosen by bus. The ACSI root drives the DMA hardware directly. The SCSI root checks for TOS 2.00 or newer, then calls `DMAread` with device `(d7 >> 5) + 8`.
 - **ICD selection is inferred:** `INSTALL.PRG` picks from five variants using flags that look like TT, Falcon and IDE tests. We use the ACSI or SCSI root with the first boot sector, leaving out the IDE root and the second boot sector, which appears to be for Falcon.
 - **ICD on TOS 1.02:** its installer text says normal mode works with all TOS versions. The TOS 1.0-1.2 warning applies to its PC-compatible mode only.
-- **AHDI and CBHD on TOS 1.02:** not confirmed yet. Loader code handles old TOS, but driver behaviour needs a boot test.
 - **Skip key:** holding Alternate makes the AHDI and ICD roots skip booting. CBHD's root asks `Abort?` instead.
 - **ICD installers:** they require an ICD host adapter, but `ahic` doesn't run them. The PRO driver's documentation says it works without one.
 
 ## Still to verify by booting
 
-- AHDI, CBHD and ICD boot on TOS 1.02, 1.04, 2.06 and 3.06.
+- AHDI 6.05c on any TOS, and all three drivers on the TT.
 - ICD's SCSI root and boot sector pairing on TT.
-- Whether `SHDRIVER.SYS`, loaded by `HINSTALL.PRG`'s boot sector, works for AHDI 6.x. The installer ships with the older AHDI 4.03.
-- GEM partitions under 16 MB with all three drivers.
-- Partition limits on TOS 1.02 with 128 MB data partitions.
-- Each driver's partition handling: for example, whether all three accept `BGM` partitions with 512-byte logical sectors, which `ahic` uses below about 32 MB.
-- FAT16 on partitions under 4085 clusters. AHDI always uses FAT16 for GEMDOS partitions, but CBHD and ICD are unchecked, and other FAT readers may assume FAT12.
+- Whether `HINSTALL.PRG`'s boot sector works for AHDI 6.x. The installer ships with the older AHDI 4.03, though the entry point matches and AHDI 6.05c ran to completion on a simulated 68000 with fake hardware.
+- FAT16 on partitions under 4085 clusters in other FAT readers, which may assume FAT12. All three drivers booted such an image.

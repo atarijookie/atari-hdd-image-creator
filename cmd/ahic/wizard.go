@@ -78,11 +78,7 @@ func (w *wizard) create() error {
 		return err
 	}
 	fmt.Fprintln(w.out)
-	if err := buildImage(path, size, tos, name, bus, force, w.out); err != nil {
-		return err
-	}
-	fmt.Fprintln(w.out, "\nThis image has not been boot tested yet.")
-	return nil
+	return buildImage(path, size, tos, name, bus, force, w.out)
 }
 
 func (w *wizard) chooseTOS() (image.TOS, error) {

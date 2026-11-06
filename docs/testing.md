@@ -1,15 +1,10 @@
 # Test plan
 
-No `ahic` image has been booted on TOS yet. The loader simulation stops as soon as a driver starts, so these tests cover what it can't.
+The loader simulation stops as soon as a driver starts, so these tests cover what it can't.
 
 ## Creating test images
 
-```sh
-ahic create --size 64 --tos 1.02 --driver ahdi ahdi-102.img
-ahic create --size 64 --tos 1.02 --driver cbhd cbhd-102.img
-ahic create --size 64 --tos 1.02 --driver icd icd-102.img
-ahic create --size 1024 --tos 3.06 --bus scsi --driver ahdi ahdi-tt.img
-```
+`tools/make_test_images.sh` creates every combination below in `test-images/`, which git ignores. It checks each image with `ahic verify`.
 
 ## Running in Hatari
 
@@ -34,20 +29,24 @@ Fill in each cell with the date and the result.
 
 | TOS, machine, bus | AHDI | CBHD | ICD |
 |---|---|---|---|
-| 1.02, ST, ACSI | Not tested | Not tested | Not tested |
-| 1.04, ST, ACSI | Not tested | Not tested | Not tested |
-| 2.06, ST, ACSI | Not tested | Not tested | Not tested |
-| 3.0x, TT, ACSI | Not tested | Not tested | Not tested |
-| 3.0x, TT, SCSI | Not tested | Not tested | Not tested |
+| 1.02, ST, ACSI | Boots, slow start | Boots | Boots |
+| 1.04, ST, ACSI | Boots, slow start | Boots | Boots |
+| 2.06, ST, ACSI | Boots, slow start | Boots | Boots |
+| 3.0x, TT, ACSI | 4 bombs | 4 bombs | 4 bombs |
+| 3.0x, TT, SCSI | Boots | Boots | Freezes after its title |
 
 ## Layouts to test
 
-| Layout | Command | Why |
-|---|---|---|
-| Smallest | `--size 4` | Few clusters on FAT16 |
-| Small BGM | `--size 40` | BGM with 512-byte sectors |
-| TOS 1.02 limit | `--size 399 --tos 1.02` | Three 128 MB partitions |
-| 8 KB sectors | `--size 1024 --tos 1.04` | Largest logical sectors |
+| Layout | Command | Why | Tested on | Result |
+|---|---|---|---|---|
+| Smallest | `--size 4` | Few clusters on FAT16 | TOS 2.06, ACSI | All three drivers OK |
+| Small BGM | `--size 40` | BGM with 512-byte sectors | TOS 2.06, ACSI | All three drivers OK |
+| TOS 1.02 limit | `--size 399 --tos 1.02` | Three 128 MB partitions | TOS 1.02, ACSI | All three drivers OK |
+| 8 KB sectors | `--size 1024 --tos 1.04` | Largest logical sectors | TOS 2.06, ACSI | All three drivers OK |
+
+Files copied onto images 22-27 were still there after a restart.
+
+AHDI pauses for 10-20 seconds at `Unit 0 -` on every machine. This appears to be a bug in its slow ACSI delay, not a problem with the image.
 
 ## Changing drivers
 
@@ -60,7 +59,8 @@ Fill in each cell with the date and the result.
 | Symptom | First thing to check |
 |---|---|
 | No banner, normal desktop without C: | Root or boot sector rejected, try `ahic verify` |
-| AHDI 6.x hangs at boot | `HINSTALL.PRG`'s loader was built for AHDI 4.03 |
+| AHDI hangs at boot | `HINSTALL.PRG`'s loader was built for AHDI 4.03 |
+| Bombs right after the driver starts | Driver build uses 68030 instructions, see `docs/loaders.md` |
 | Banner shows, but a partition is missing | Driver rejected its partition type or sector size |
 | Only ICD fails on TT SCSI | Variant choice is inferred, see `docs/loaders.md` |
 | Large partition corrupts | Lower the TOS limit in `internal/image/plan.go` |

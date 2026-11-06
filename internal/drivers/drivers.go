@@ -37,18 +37,18 @@ type entry struct {
 
 var catalog = map[string]entry{
 	"ahdi": {
-		Info{"ahdi", "Atari AHDI", "6.061 (reports v6.00)", "SHDRIVER.SYS", "Atari, status unclear",
-			"TOS 1.02 not confirmed"},
+		Info{"ahdi", "Atari AHDI", "6.05c (reports v6.00)", "SHDRIVER.SYS", "Atari, status unclear",
+			"Boots on TOS 1.02, 1.04 and 2.06, pauses 10-20 s at Unit 0"},
 		sameRoot("ahdi_root"), "ahdi_boot",
 	},
 	"cbhd": {
 		Info{"cbhd", "CBHD", "4.57", "CBHD.SYS", "Freeware, unchanged copies allowed",
-			"TOS 1.02 not confirmed"},
+			"Boots on TOS 1.02, 1.04 and 2.06"},
 		sameRoot("cbhd_root"), "cbhd_boot",
 	},
 	"icd": {
 		Info{"icd", "ICD PRO", "6.5.5", "ICDBOOT.SYS", "ICD Inc, status unclear",
-			"Documented for all TOS versions; root loader depends on the bus"},
+			"Boots on TOS 1.02, 1.04 and 2.06; root loader depends on the bus"},
 		map[string]string{"acsi": "icd_root_acsi", "scsi": "icd_root_scsi"}, "icd_boot",
 	},
 }

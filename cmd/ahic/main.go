@@ -242,7 +242,6 @@ func listDrivers() error {
 		fmt.Printf("%-5s %s %s, installs %s\n      Licence: %s\n      %s\n",
 			driver.Name, driver.Title, driver.Version, driver.FileName, driver.Licence, driver.Note)
 	}
-	fmt.Println("\nNo driver has been boot tested with ahic images yet.")
 	return nil
 }
 
