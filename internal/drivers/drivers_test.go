@@ -30,6 +30,17 @@ func TestEveryDriverLoadsAndIdentifies(t *testing.T) {
 	}
 }
 
+func TestAHDIHasTheDelayFix(t *testing.T) {
+	driver, err := Load("ahdi", "acsi")
+	if err != nil {
+		t.Fatal(err)
+	}
+	fixed := []byte{0xB0, 0xB8, 0x04, 0xBA, 0x6C, 0xFA, 0x20, 0x1F}
+	if bytes.Count(driver.Binary, fixed) != 1 {
+		t.Error("the bundled AHDI is missing its delay fix")
+	}
+}
+
 func TestLoadRejectsUnknownNames(t *testing.T) {
 	if _, err := Load("hddriver", "acsi"); err == nil {
 		t.Error("expected an unknown driver error")

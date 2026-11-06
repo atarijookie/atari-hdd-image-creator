@@ -58,6 +58,15 @@ def expect(blob, offset, data, name):
         raise ValueError(f"{name}: anchor missing at {offset:#x}")
 
 
+def fix_ahdi_delay(driver):
+    """Fix AHDI's slow ACSI delay, which looped back to its add, not its compare."""
+    old = bytes.fromhex("7002D0B804BAB0B804BA6CF6201F")
+    new = bytes.fromhex("7002D0B804BAB0B804BA6CFA201F")
+    if driver.count(old) != 1:
+        raise ValueError("AHDI: delay loop not found exactly once")
+    return driver.replace(old, new)
+
+
 def check_prg(prg, name):
     if prg[:2] != b"\x60\x1a":
         raise ValueError(f"{name}: not a GEMDOS executable")
@@ -105,10 +114,10 @@ def main():
     files["loaders/icd_root_scsi.bin"] = sector_with(scsi, ROOT_RANGE)
     files["loaders/icd_boot.bin"] = sector_with(boot, BOOT_RANGE)
 
-    # Drivers keep their original bytes and take the name their loader expects.
+    # Drivers take the name their loader expects, and only AHDI is patched.
     # AHDI6061.PRG is not used: it was built for the 68030 and crashes on a 68000.
     with zipfile.ZipFile(third / "ADHI 6061 Sources/AHD6060S.ZIP") as sources:
-        ahdi = sources.read("AHDI606/DRIVER.PRG")
+        ahdi = fix_ahdi_delay(sources.read("AHDI606/DRIVER.PRG"))
     for target, data in {
         "drivers/SHDRIVER.SYS": ahdi,
         "drivers/CBHD.SYS": (cbhd / "CBHD.PRG").read_bytes(),

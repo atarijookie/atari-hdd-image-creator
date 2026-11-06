@@ -37,8 +37,8 @@ type entry struct {
 
 var catalog = map[string]entry{
 	"ahdi": {
-		Info{"ahdi", "Atari AHDI", "6.05c (reports v6.00)", "SHDRIVER.SYS", "Atari, status unclear",
-			"Boots on TOS 1.02, 1.04 and 2.06, pauses 10-20 s at Unit 0"},
+		Info{"ahdi", "Atari AHDI", "6.05c with boot delay fix (reports v6.00)", "SHDRIVER.SYS", "Atari, status unclear",
+			"Boots on ST; finds no drives on real TT ACSI"},
 		sameRoot("ahdi_root"), "ahdi_boot",
 	},
 	"cbhd": {

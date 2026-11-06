@@ -25,14 +25,17 @@ Hatari's manual calls its SCSI support incomplete, so a SCSI failure there still
 
 ## Results
 
+AHDI results before the delay fix showed the same boot, with a pause.
+
 Fill in each cell with the date and the result.
 
 | TOS, machine, bus | AHDI | CBHD | ICD |
 |---|---|---|---|
-| 1.02, ST, ACSI | Boots, slow start | Boots | Boots |
-| 1.04, ST, ACSI | Boots, slow start | Boots | Boots |
-| 2.06, ST, ACSI | Boots, slow start | Boots | Boots |
-| 3.0x, TT, ACSI | 4 bombs | 4 bombs | 4 bombs |
+| 1.02, ST, ACSI | Boots | Boots | Boots |
+| 1.04, ST, ACSI | Boots | Boots | Boots |
+| 2.06, ST, ACSI | Boots | Boots | Boots |
+| 3.0x, real TT, ACSI | Driver starts, then `Not responding`, no drives | Boots, files survive restart | Boots, files survive restart |
+| 3.0x, Hatari TT, ACSI | 4 bombs | 4 bombs | 4 bombs |
 | 3.0x, TT, SCSI | Boots | Boots | Freezes after its title |
 
 ## Layouts to test
@@ -46,7 +49,9 @@ Fill in each cell with the date and the result.
 
 Files copied onto images 22-27 were still there after a restart.
 
-AHDI pauses for 10-20 seconds at `Unit 0 -` on every machine. This appears to be a bug in its slow ACSI delay, not a problem with the image.
+The original AHDI paused for 10-30 seconds at `Unit 0 -` on every machine, because of a bug in its slow ACSI delay. In Hatari on TOS 1.04, a one-byte fix cut the pause from about 30 seconds to about half a second, and the bundled AHDI now has that fix.
+
+That fix did not change AHDI's result on the real TT, so the delay isn't why it finds no drives there.
 
 ## Changing drivers
 

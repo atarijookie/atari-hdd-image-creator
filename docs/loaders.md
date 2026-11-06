@@ -24,7 +24,7 @@ This analysis comes from reading the loader code. `tools/simulate_boot.py` runs 
 | Driver entry | Load address + `0x20` | Load address + `0x20` | Load address, with `d0 = 'WBLB'` |
 | Read routine passed in | `a3` | `a3` | `a5` |
 
-`DRIVER.PRG` is AHDI 6.05c, going by its source history, though its banner says `v6.00`.
+`DRIVER.PRG` is AHDI 6.05c, going by its source history, though its banner says `v6.00`. `tools/extract_loaders.py` changes one byte in it: the `bge.s sdelay` branch in `ACSI.S` becomes `6CFA`, so the delay loops on its compare and not its add. Unfixed, it keeps adding `_hz_200` until the number overflows, which pauses boot for up to 30 seconds.
 
 **`AHDI6061.PRG` must not be used on a 68000.** It was assembled for the 68030 and has 43 PC-relative `tst` instructions, which a 68000 treats as illegal. It crashed with bombs on every ST test. Before bundling a new driver build, disassemble it with `-m m68k:68000` to check for this. `simulate_boot.py` can't catch it, because its emulator accepts 68030 instructions in 68000 code.
 

@@ -4,7 +4,7 @@
 
 It partitions an image for a chosen TOS version and installs a free driver using that driver's original boot loaders.
 
-**Status:** AHDI, CBHD and ICD PRO images boot on TOS 1.02, 1.04 and 2.06 over ACSI, from 4 MB to 1 GB. On the TT, AHDI and CBHD boot from SCSI, while ICD freezes and all three crash on ACSI. See [the test plan](docs/testing.md).
+**Status:** AHDI, CBHD and ICD PRO images boot on TOS 1.02, 1.04 and 2.06 over ACSI, from 4 MB to 1 GB. On a real TT over ACSI, CBHD and ICD PRO work, but AHDI finds no drives. In Hatari, AHDI and CBHD boot from TT SCSI, ICD PRO freezes there, and all three crash on TT ACSI. See [the test plan](docs/testing.md).
 
 ## Build
 
@@ -69,9 +69,11 @@ python3 tools/simulate_boot.py disk.img SHDRIVER.SYS acsi 1.04
 
 | Driver | Version | Status |
 |---|---|---|
-| AHDI | 6.05c | Atari copyright, licence status unclear |
+| AHDI | 6.05c, patched | Atari copyright, licence status unclear |
 | CBHD | 4.57 | Freeware, unchanged copies allowed |
 | ICD PRO | 6.5.5 | ICD copyright, licence status unclear |
+
+AHDI has a one-byte fix for a bug in its slow ACSI delay, which paused boot for up to 30 seconds. CBHD and ICD PRO are unchanged.
 
 ## Licence
 
