@@ -63,7 +63,7 @@ func usage() error {
 	}
 	return fmt.Errorf(`usage:
   ahic                 start the interactive wizard
-  ahic create --size MB --tos VERSION --driver NAME [--bus BUS] [--force] FILE
+  ahic create --size MB --tos VERSION --driver NAME [--boot-size MB] [--bus BUS] [--force] FILE
   ahic install-driver --driver NAME [--bus BUS] FILE
   ahic info FILE
   ahic verify FILE
@@ -72,10 +72,12 @@ func usage() error {
 
   --size    image size, %d to %d MB
   --tos     %s
+  --boot-size  boot partition size, %d MB before TOS 3.0x, %d MB from TOS 3.0x by default
   --driver  %s
   --bus     acsi or scsi, scsi needs TOS 3.0x
   --force   overwrite FILE if it exists`,
-		image.MinSizeMB, image.MaxSizeMB, strings.Join(versions, ", "), strings.Join(drivers.Names(), ", "))
+		image.MinSizeMB, image.MaxSizeMB, strings.Join(versions, ", "), image.SmallBootMB, image.LargeBootMB,
+		strings.Join(drivers.Names(), ", "))
 }
 
 func create(args []string) error {
@@ -83,6 +85,7 @@ func create(args []string) error {
 	flags.SetOutput(os.Stderr)
 	flags.Usage = func() {}
 	size := flags.Int("size", 0, "")
+	bootSize := flags.Int("boot-size", 0, "")
 	version := flags.String("tos", "", "")
 	driverName := flags.String("driver", "", "")
 	bus := flags.String("bus", "acsi", "")
@@ -97,10 +100,13 @@ func create(args []string) error {
 	if err != nil {
 		return err
 	}
-	return buildImage(flags.Arg(0), *size, tos, *driverName, *bus, *force, os.Stdout)
+	if *bootSize == 0 {
+		*bootSize = tos.DefaultBootMB()
+	}
+	return buildImage(flags.Arg(0), *size, *bootSize, tos, *driverName, *bus, *force, os.Stdout)
 }
 
-func buildImage(path string, size int, tos image.TOS, driverName, bus string, force bool, out io.Writer) error {
+func buildImage(path string, size, bootSize int, tos image.TOS, driverName, bus string, force bool, out io.Writer) error {
 	if bus == "scsi" && !tos.SupportsSCSI {
 		return fmt.Errorf("TOS %s cannot boot from SCSI", tos.Version)
 	}
@@ -108,7 +114,7 @@ func buildImage(path string, size int, tos image.TOS, driverName, bus string, fo
 	if err != nil {
 		return err
 	}
-	plan, err := image.NewPlan(size, tos)
+	plan, err := image.NewPlan(size, bootSize, tos)
 	if err != nil {
 		return err
 	}

@@ -19,7 +19,7 @@ func newImage(t *testing.T, sizeMB int, name, bus string) string {
 	if bus == "scsi" {
 		tos = "3.06"
 	}
-	plan, err := NewPlan(sizeMB, mustTOS(t, tos))
+	plan, err := NewPlan(sizeMB, SmallBootMB, mustTOS(t, tos))
 	if err != nil {
 		t.Fatal(err)
 	}

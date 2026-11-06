@@ -51,11 +51,14 @@ ahic drivers
 |---|---|
 | `--size` | 4 to 1024 MB, up to 399 MB on TOS 1.02 |
 | `--tos` | 1.02, 1.04, 1.06, 1.62, 2.05, 2.06, 3.01, 3.05, 3.06 |
+| `--boot-size` | Boot partition in MB, up to 512, or 128 on TOS 1.02 |
 | `--driver` | `ahdi`, `cbhd`, `icd` |
 | `--bus` | `acsi` (default), or `scsi` with TOS 3.0x |
 | `--force` | Overwrite an existing file |
 
-Images use a 15 MB boot partition, then up to 3 equal data partitions. Images under 32 MB use one partition.
+Images use a boot partition, then up to 3 equal data partitions. If too little space is left after the boot partition, the image becomes one partition.
+
+The boot partition defaults to 15 MB (type GEM) on TOS 1.x and 2.0x, which may be safer on old TOS versions. TOS 3.0x defaults to 128 MB (type BGM). The wizard asks for this too.
 
 ## Development
 
@@ -75,10 +78,10 @@ python3 tools/simulate_boot.py disk.img SHDRIVER.SYS acsi 1.04
 
 | Issue | Where | Workaround or next step |
 |---|---|---|
-| AHDI starts, but finds no drives | Real TT, ACSI | Use CBHD or ICD PRO |
+| AHDI starts, but finds no drives | Real TT and STFM with Cosmo2EX, ACSI | Use CBHD or ICD PRO; may be a Cosmo2EX incompatibility, AHDI has only worked in Hatari so far |
 | ICD PRO freezes after its title | Hatari TT, SCSI | Not tried on a real TT yet |
 | All three drivers crash with 4 bombs | Hatari TT, ACSI | A real TT doesn't crash, so this looks specific to Hatari |
-| AHDI's boot delay fix is unconfirmed on an ST | Real ST | Tested in Hatari on TOS 1.04 and on a real TT |
+| AHDI's boot delay fix is only measured in Hatari | Real hardware | Depends on AHDI finding drives on real hardware |
 | macOS builds have not been run | macOS | They compile, but need a first test |
 
 ## Bundled drivers

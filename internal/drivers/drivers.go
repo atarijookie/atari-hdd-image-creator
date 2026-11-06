@@ -38,17 +38,17 @@ type entry struct {
 var catalog = map[string]entry{
 	"ahdi": {
 		Info{"ahdi", "Atari AHDI", "6.05c with boot delay fix (reports v6.00)", "SHDRIVER.SYS", "Atari, status unclear",
-			"Boots on ST; finds no drives on real TT ACSI"},
+			"Works in Hatari; finds no drives on Cosmo2EX over ACSI"},
 		sameRoot("ahdi_root"), "ahdi_boot",
 	},
 	"cbhd": {
 		Info{"cbhd", "CBHD", "4.57", "CBHD.SYS", "Freeware, unchanged copies allowed",
-			"Boots on TOS 1.02, 1.04 and 2.06"},
+			"Boots on real ST and TT over ACSI"},
 		sameRoot("cbhd_root"), "cbhd_boot",
 	},
 	"icd": {
 		Info{"icd", "ICD PRO", "6.5.5", "ICDBOOT.SYS", "ICD Inc, status unclear",
-			"Boots on TOS 1.02, 1.04 and 2.06; root loader depends on the bus"},
+			"Boots on real ST and TT over ACSI; root loader depends on the bus"},
 		map[string]string{"acsi": "icd_root_acsi", "scsi": "icd_root_scsi"}, "icd_boot",
 	},
 }

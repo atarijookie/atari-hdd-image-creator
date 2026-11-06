@@ -55,7 +55,11 @@ func (w *wizard) create() error {
 		}
 		bus = []string{"acsi", "scsi"}[choice]
 	}
-	size, err := w.askSize(tos)
+	bootSize, err := w.askBoot(tos)
+	if err != nil {
+		return err
+	}
+	size, err := w.askSize(tos, bootSize)
 	if err != nil {
 		return err
 	}
@@ -63,7 +67,7 @@ func (w *wizard) create() error {
 	if err != nil {
 		return err
 	}
-	plan, err := image.NewPlan(size, tos)
+	plan, err := image.NewPlan(size, bootSize, tos)
 	if err != nil {
 		return err
 	}
@@ -78,14 +82,14 @@ func (w *wizard) create() error {
 		return err
 	}
 	fmt.Fprintln(w.out)
-	return buildImage(path, size, tos, name, bus, force, w.out)
+	return buildImage(path, size, bootSize, tos, name, bus, force, w.out)
 }
 
 func (w *wizard) chooseTOS() (image.TOS, error) {
 	versions := image.TOSVersions()
 	options := make([]string, len(versions))
 	for i, tos := range versions {
-		options[i] = fmt.Sprintf("TOS %s, up to %d MB", tos.Version, tos.MaxImageMB())
+		options[i] = "TOS " + tos.Version
 	}
 	choice, err := w.choose("Which TOS version will boot this image?", options)
 	if err != nil {
@@ -107,17 +111,63 @@ func (w *wizard) chooseDriver() (string, error) {
 	return catalog[choice].Name, nil
 }
 
-func (w *wizard) askSize(tos image.TOS) (int, error) {
-	for {
-		answer, err := w.ask(fmt.Sprintf("\nImage size in MB (%d to %d): ", image.MinSizeMB, tos.MaxImageMB()))
+// askBoot returns the boot partition size. Before TOS 3.0x the small GEM
+// partition stays the default, because old TOS versions may have bugs with
+// larger ones.
+func (w *wizard) askBoot(tos image.TOS) (int, error) {
+	if !tos.PrefersLargeBoot() {
+		fmt.Fprintf(w.out, "\nA small GEM boot partition may be safer on TOS 1.x and 2.0x, which are old and may have bugs with larger ones.")
+		choice, err := w.chooseDefault("Which boot partition do you want?", []string{
+			fmt.Sprintf("GEM, %d MB", image.SmallBootMB),
+			fmt.Sprintf("BGM, up to %d MB", tos.MaxBootMB()),
+		}, 0)
 		if err != nil {
 			return 0, err
 		}
+		if choice == 0 {
+			return image.SmallBootMB, nil
+		}
+	}
+	const smallestBGM = image.SmallBootMB + 1
+	largest := tos.MaxBootMB()
+	for {
+		answer, err := w.ask(fmt.Sprintf("\nBoot partition size in MB (%d to %d) [%d]: ", smallestBGM, largest, image.LargeBootMB))
+		if err != nil {
+			return 0, err
+		}
+		if answer == "" {
+			return image.LargeBootMB, nil
+		}
 		size, err := strconv.Atoi(answer)
-		if err == nil && size >= image.MinSizeMB && size <= tos.MaxImageMB() {
+		if err == nil && size >= smallestBGM && size <= largest {
 			return size, nil
 		}
-		fmt.Fprintf(w.out, "Enter a whole number from %d to %d.\n", image.MinSizeMB, tos.MaxImageMB())
+		fmt.Fprintf(w.out, "Enter a whole number from %d to %d.\n", smallestBGM, largest)
+	}
+}
+
+// askSize returns the image size. An image holding a BGM boot partition can't
+// be smaller than that partition, and Enter accepts that smallest size.
+func (w *wizard) askSize(tos image.TOS, bootSize int) (int, error) {
+	smallest, fallback := image.MinSizeMB, ""
+	if bootSize > image.SmallBootMB {
+		smallest = bootSize
+		fallback = fmt.Sprintf(" [%d]", bootSize)
+	}
+	largest := tos.MaxImageMB(bootSize)
+	for {
+		answer, err := w.ask(fmt.Sprintf("\nImage size in MB (%d to %d)%s: ", smallest, largest, fallback))
+		if err != nil {
+			return 0, err
+		}
+		if answer == "" && fallback != "" {
+			return smallest, nil
+		}
+		size, err := strconv.Atoi(answer)
+		if err == nil && size >= smallest && size <= largest {
+			return size, nil
+		}
+		fmt.Fprintf(w.out, "Enter a whole number from %d to %d.\n", smallest, largest)
 	}
 }
 
@@ -197,14 +247,27 @@ func (w *wizard) askExisting() (string, error) {
 }
 
 func (w *wizard) choose(title string, options []string) (int, error) {
+	return w.chooseDefault(title, options, -1)
+}
+
+// chooseDefault returns the chosen index. Pressing Enter picks fallback,
+// unless it is negative.
+func (w *wizard) chooseDefault(title string, options []string, fallback int) (int, error) {
 	fmt.Fprintf(w.out, "\n%s\n", title)
 	for i, option := range options {
 		fmt.Fprintf(w.out, "  %d) %s\n", i+1, option)
 	}
+	prompt := "Choice: "
+	if fallback >= 0 {
+		prompt = fmt.Sprintf("Choice [%d]: ", fallback+1)
+	}
 	for {
-		answer, err := w.ask("Choice: ")
+		answer, err := w.ask(prompt)
 		if err != nil {
 			return 0, err
+		}
+		if answer == "" && fallback >= 0 {
+			return fallback, nil
 		}
 		choice, err := strconv.Atoi(answer)
 		if err == nil && choice >= 1 && choice <= len(options) {

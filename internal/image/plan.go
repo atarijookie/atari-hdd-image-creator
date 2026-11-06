@@ -10,12 +10,16 @@ const (
 	MinSizeMB = 4
 	MaxSizeMB = 1024
 
-	maxPartitions     = 4 // XGM chains are not supported
-	firstPartition    = 2 // sector 0 is the root, sector 1 the bad sector list
-	badSectorCount    = 1
-	bootSectors       = 15 * mebibyte
+	maxPartitions  = 4 // XGM chains are not supported
+	firstPartition = 2 // sector 0 is the root, sector 1 the bad sector list
+	badSectorCount = 1
+	// SmallBootMB keeps the boot partition GEM, LargeBootMB is the BGM default.
+	SmallBootMB = 15
+	LargeBootMB = 128
+	minBootMB   = 4
+
+	minDataSectors    = 16 * mebibyte // smaller remainders join the boot partition
 	gemLimitSectors   = 16 * mebibyte // smaller partitions are GEM, others BGM
-	singleBelowMB     = 32            // smaller images get one partition
 	partitionAlign    = 16            // the largest logical sector, 8 KB
 	rootEntries       = 256           // fills whole logical sectors up to 8 KB
 	maxClusters       = 32766
@@ -65,13 +69,43 @@ func FindTOS(version string) (TOS, error) {
 	return TOS{}, fmt.Errorf("unsupported TOS version %q", version)
 }
 
-// MaxImageMB returns the largest image this TOS version can use in full.
-func (t TOS) MaxImageMB() int {
-	mb := int((bootSectors + firstPartition + 3*uint64(t.MaxPartition)) / mebibyte)
+// MaxImageMB returns the largest image this TOS version can use in full
+// with the given boot partition.
+func (t TOS) MaxImageMB(bootMB int) int {
+	sectors := uint64(t.bootSectors(bootMB)) + firstPartition + 3*uint64(t.MaxPartition)
+	mb := int(sectors / mebibyte)
 	if mb > MaxSizeMB {
 		return MaxSizeMB
 	}
 	return mb
+}
+
+// MaxBootMB returns the largest boot partition, rounded up to a whole MB.
+func (t TOS) MaxBootMB() int {
+	return int((t.MaxPartition + mebibyte - 1) / mebibyte)
+}
+
+// DefaultBootMB returns the boot partition size used unless another is chosen.
+func (t TOS) DefaultBootMB() int {
+	if t.PrefersLargeBoot() {
+		return LargeBootMB
+	}
+	return SmallBootMB
+}
+
+// PrefersLargeBoot reports whether this TOS starts with a BGM boot partition.
+// Older versions keep the small GEM partition, as they may have bugs with
+// larger ones.
+func (t TOS) PrefersLargeBoot() bool {
+	return t.Version >= "3"
+}
+
+func (t TOS) bootSectors(bootMB int) uint32 {
+	sectors := align(uint32(bootMB) * mebibyte)
+	if sectors > t.MaxPartition {
+		return t.MaxPartition
+	}
+	return sectors
 }
 
 // Partition is one planned partition.
@@ -96,21 +130,30 @@ type Plan struct {
 	Partitions []Partition
 }
 
-// NewPlan lays out an image: a small boot partition, then larger data partitions.
-func NewPlan(sizeMB int, tos TOS) (*Plan, error) {
+// NewPlan lays out an image: a boot partition, then larger data partitions.
+func NewPlan(sizeMB, bootMB int, tos TOS) (*Plan, error) {
 	if sizeMB < MinSizeMB || sizeMB > MaxSizeMB {
 		return nil, fmt.Errorf("image size must be %d to %d MB", MinSizeMB, MaxSizeMB)
 	}
-	if sizeMB > tos.MaxImageMB() {
-		return nil, fmt.Errorf("TOS %s supports images up to %d MB with %d partitions", tos.Version, tos.MaxImageMB(), maxPartitions)
+	if bootMB < minBootMB || bootMB > tos.MaxBootMB() {
+		return nil, fmt.Errorf("on TOS %s the boot partition must be %d to %d MB", tos.Version, minBootMB, tos.MaxBootMB())
+	}
+	if sizeMB > tos.MaxImageMB(bootMB) {
+		return nil, fmt.Errorf("TOS %s supports images up to %d MB with %d partitions and this boot partition",
+			tos.Version, tos.MaxImageMB(bootMB), maxPartitions)
 	}
 	total := uint32(sizeMB) * mebibyte
 	free := total - firstPartition
+	boot := tos.bootSectors(bootMB)
 	var sizes []uint32
-	if sizeMB < singleBelowMB {
-		sizes = []uint32{align(free)}
-	} else {
-		sizes = append([]uint32{bootSectors}, splitData(free-bootSectors, tos.MaxPartition)...)
+	whole := align(free)
+	switch {
+	case whole <= tos.MaxPartition && (free < boot || free-boot < minDataSectors):
+		sizes = []uint32{whole}
+	case free-boot < mebibyte: // too little left over for another partition
+		sizes = []uint32{boot}
+	default:
+		sizes = append([]uint32{boot}, splitData(free-boot, tos.MaxPartition)...)
 	}
 	plan := &Plan{Sectors: total}
 	start := uint32(firstPartition)

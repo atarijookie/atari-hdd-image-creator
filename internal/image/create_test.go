@@ -24,21 +24,34 @@ func mustTOS(t *testing.T, version string) TOS {
 func TestPlanLayouts(t *testing.T) {
 	cases := []struct {
 		size    int
+		boot    int
 		version string
 		types   []string
 	}{
-		{4, "1.04", []string{"GEM"}},
-		{31, "1.04", []string{"BGM"}},
-		{32, "1.04", []string{"GEM", "BGM"}},
-		{30, "1.04", []string{"BGM"}},
-		{64, "1.04", []string{"GEM", "BGM"}},
-		{399, "1.02", []string{"GEM", "BGM", "BGM", "BGM"}},
-		{1024, "3.06", []string{"GEM", "BGM", "BGM"}},
-		{1024, "1.04", []string{"GEM", "BGM", "BGM"}},
-		{1010, "1.04", []string{"GEM", "BGM", "BGM"}},
+		{4, 15, "1.04", []string{"GEM"}},
+		{31, 15, "1.04", []string{"BGM"}},
+		{32, 15, "1.04", []string{"GEM", "BGM"}},
+		{30, 15, "1.04", []string{"BGM"}},
+		{64, 15, "1.04", []string{"GEM", "BGM"}},
+		{399, 15, "1.02", []string{"GEM", "BGM", "BGM", "BGM"}},
+		{1024, 15, "3.06", []string{"GEM", "BGM", "BGM"}},
+		{1024, 15, "1.04", []string{"GEM", "BGM", "BGM"}},
+		{1010, 15, "1.04", []string{"GEM", "BGM", "BGM"}},
+		{64, 128, "3.06", []string{"BGM"}},
+		{143, 128, "3.06", []string{"BGM"}},
+		{145, 128, "3.06", []string{"BGM", "BGM"}},
+		{512, 128, "3.06", []string{"BGM", "BGM"}},
+		{1024, 128, "3.06", []string{"BGM", "BGM", "BGM"}},
+		{512, 128, "1.02", []string{"BGM", "BGM", "BGM", "BGM"}},
+		{1024, 512, "3.06", []string{"BGM", "BGM", "BGM"}},
+		{128, 128, "3.06", []string{"BGM"}},
+		{512, 512, "3.06", []string{"BGM"}},
+		{513, 512, "3.06", []string{"BGM", "GEM"}},
+		{520, 512, "3.06", []string{"BGM", "GEM"}},
+		{530, 512, "3.06", []string{"BGM", "BGM"}},
 	}
 	for _, c := range cases {
-		plan, err := NewPlan(c.size, mustTOS(t, c.version))
+		plan, err := NewPlan(c.size, c.boot, mustTOS(t, c.version))
 		if err != nil {
 			t.Fatalf("%d MB: %v", c.size, err)
 		}
@@ -89,11 +102,12 @@ func checkGeometry(t *testing.T, partition Partition) {
 func TestPlanRejects(t *testing.T) {
 	cases := []struct {
 		size    int
+		boot    int
 		version string
-	}{{3, "1.04"}, {1025, "3.06"}, {400, "1.02"}}
+	}{{3, 15, "1.04"}, {1025, 15, "3.06"}, {400, 15, "1.02"}, {64, 3, "3.06"}, {1024, 513, "3.06"}, {64, 129, "1.02"}}
 	for _, c := range cases {
-		if _, err := NewPlan(c.size, mustTOS(t, c.version)); err == nil {
-			t.Errorf("%d MB on TOS %s: expected an error", c.size, c.version)
+		if _, err := NewPlan(c.size, c.boot, mustTOS(t, c.version)); err == nil {
+			t.Errorf("%d MB with %d MB boot on TOS %s: expected an error", c.size, c.boot, c.version)
 		}
 	}
 }
@@ -112,12 +126,15 @@ func TestChecksumAvoidsDOSSignature(t *testing.T) {
 
 func TestCreatedImagesLoadTheDriver(t *testing.T) {
 	cases := []struct {
-		size         int
+		size, boot   int
 		version, bus string
 	}{
-		{4, "1.02", "acsi"},
-		{64, "1.04", "acsi"},
-		{1024, "3.06", "scsi"},
+		{4, 15, "1.02", "acsi"},
+		{64, 15, "1.04", "acsi"},
+		{1024, 15, "3.06", "scsi"},
+		{512, 128, "3.06", "acsi"},
+		{1024, 512, "3.06", "scsi"},
+		{512, 128, "1.02", "acsi"},
 	}
 	for _, name := range drivers.Names() {
 		for _, c := range cases {
@@ -125,7 +142,7 @@ func TestCreatedImagesLoadTheDriver(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			plan, err := NewPlan(c.size, mustTOS(t, c.version))
+			plan, err := NewPlan(c.size, c.boot, mustTOS(t, c.version))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -240,7 +257,7 @@ func TestCreateKeepsExistingFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	plan, err := NewPlan(4, mustTOS(t, "1.04"))
+	plan, err := NewPlan(4, SmallBootMB, mustTOS(t, "1.04"))
 	if err != nil {
 		t.Fatal(err)
 	}

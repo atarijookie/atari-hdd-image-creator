@@ -53,6 +53,23 @@ The original AHDI paused for 10-30 seconds at `Unit 0 -` on every machine, becau
 
 That fix did not change AHDI's result on the real TT, so the delay isn't why it finds no drives there.
 
+## BGM boot partitions
+
+These images test boot partitions larger than 16 MB.
+
+| Files | Boot partition | Image | Target | AHDI | CBHD | ICD |
+|---|---|---|---|---|---|---|
+| `29-31` | 128 MB, 4 KB sectors | 512 MB | Real TT, ACSI | Not tested | Boots | Not tested |
+| `32-34` | 128 MB, 4 KB sectors | 512 MB | TT, SCSI | Not tested | Not tested | Not tested |
+| `35-37` | 511.9 MB, 8 KB sectors | 1 GB | Real TT, ACSI | `Not responding` | Boots | Boots |
+| `38-40` | 511.9 MB, 8 KB sectors | 1 GB | TT, SCSI | Not tested | Not tested | Not tested |
+| `41-43` | 128 MB, 4 KB sectors | 512 MB | Real STFM, 1 MB, TOS 1.02 | Starts, no drives | Boots | Boots |
+| `44-46` | 128 MB, 4 KB sectors | 512 MB | ST, TOS 2.06, ACSI | Not tested | Not tested | Not tested |
+
+Image `31` (ICD, 128 MB boot) also booted on the real STFM.
+
+AHDI has so far worked only in Hatari. All its tests on real hardware used Cosmo2EX over ACSI and failed to find drives, with GEM and BGM boot partitions alike, including image `28` on the STFM. This may be an incompatibility between AHDI and Cosmo2EX.
+
 ## Windows build
 
 A 128 MB CBHD image created by the Windows build booted on a real TT over ACSI.
