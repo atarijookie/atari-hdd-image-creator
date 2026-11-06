@@ -53,11 +53,13 @@ The original AHDI paused for 10-30 seconds at `Unit 0 -` on every machine, becau
 
 That fix did not change AHDI's result on the real TT, so the delay isn't why it finds no drives there.
 
+## Windows build
+
+A 128 MB CBHD image created by the Windows build booted on a real TT over ACSI.
+
 ## Changing drivers
 
-1. Boot an image and copy files onto it.
-2. Run `ahic install-driver --driver NAME` on it.
-3. Boot again and confirm the new driver's banner and the copied files.
+`ahic install-driver` was tested on a real TT over ACSI. CBHD and ICD booted with their drives present after the swap. AHDI also replaced the old driver and started, but it finds no drives on TT ACSI, as it does on a fresh image.
 
 ## Most likely problems
 

@@ -10,12 +10,20 @@ It partitions an image for a chosen TOS version and installs a free driver using
 
 ```sh
 make                        # for this computer
-tools/build_release.sh      # for Linux, Windows and macOS, into dist/
+make windows                # Windows package in dist/
+make macos                  # macOS packages in dist/
+make dist                   # Linux, Windows and macOS packages in dist/
 ```
 
 Without `make`, use `go build ./cmd/ahic`.
 
-Windows and macOS builds compile, but have only been run on Linux so far.
+Linux and Windows builds have been run. macOS builds compile, but have not been run yet.
+
+## Releases
+
+Pushing a tag such as `v1.0.0` runs the tests, builds every package, and publishes them as a GitHub release. See `.github/workflows/release.yml`.
+
+macOS and Windows builds are not signed, so the first run may show a security warning.
 
 ## Usage
 
@@ -62,6 +70,16 @@ python3 tools/simulate_boot.py disk.img SHDRIVER.SYS acsi 1.04
 - `tools/extract_loaders.py` rebuilds `assets/drivers.zip` from the original driver packages.
 - `tools/simulate_boot.py` needs the `unicorn` Python package. It runs the real 68000 loaders from an image against a fake TOS, and stops when the driver starts.
 - `docs/loaders.md` explains how each loader works and the rules images must follow.
+
+## Known issues
+
+| Issue | Where | Workaround or next step |
+|---|---|---|
+| AHDI starts, but finds no drives | Real TT, ACSI | Use CBHD or ICD PRO |
+| ICD PRO freezes after its title | Hatari TT, SCSI | Not tried on a real TT yet |
+| All three drivers crash with 4 bombs | Hatari TT, ACSI | A real TT doesn't crash, so this looks specific to Hatari |
+| AHDI's boot delay fix is unconfirmed on an ST | Real ST | Tested in Hatari on TOS 1.04 and on a real TT |
+| macOS builds have not been run | macOS | They compile, but need a first test |
 
 ## Bundled drivers
 

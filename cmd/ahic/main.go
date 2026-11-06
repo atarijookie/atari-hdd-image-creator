@@ -14,6 +14,9 @@ import (
 	"github.com/atarijookie/atari-hdd-image-creator/internal/image"
 )
 
+// version is set when building a release.
+var version = "dev"
+
 var errICDBus = errors.New("ICD needs a different loader per bus, add --bus acsi or --bus scsi")
 
 func main() {
@@ -41,6 +44,9 @@ func run(args []string) error {
 		return verify(args[1:])
 	case "drivers":
 		return listDrivers()
+	case "version", "--version":
+		fmt.Println("ahic", version)
+		return nil
 	}
 	return usage()
 }
@@ -62,6 +68,7 @@ func usage() error {
   ahic info FILE
   ahic verify FILE
   ahic drivers
+  ahic version
 
   --size    image size, %d to %d MB
   --tos     %s
